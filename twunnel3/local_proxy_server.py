@@ -2,9 +2,8 @@
 # See LICENSE
 
 import asyncio
-import base64
-import json
 import socket
+import ssl as _ssl
 import struct
 import twunnel3.logger
 import twunnel3.proxy_server
@@ -32,6 +31,39 @@ def set_default_configuration(configuration, keys):
                         configuration["LOCAL_PROXY_SERVER"]["ACCOUNTS"][i].setdefault("NAME", "")
                         configuration["LOCAL_PROXY_SERVER"]["ACCOUNTS"][i].setdefault("PASSWORD", "")
                         i = i + 1
+    
+    if "REMOTE_PROXY_SERVERS" in keys:
+        configuration.setdefault("REMOTE_PROXY_SERVERS", [])
+        i = 0
+        while i < len(configuration["REMOTE_PROXY_SERVERS"]):
+            configuration["REMOTE_PROXY_SERVERS"][i].setdefault("TYPE", "")
+            if configuration["REMOTE_PROXY_SERVERS"][i]["TYPE"] == "SSL":
+                configuration["REMOTE_PROXY_SERVERS"][i].setdefault("ADDRESS", "")
+                configuration["REMOTE_PROXY_SERVERS"][i].setdefault("PORT", 0)
+                configuration["REMOTE_PROXY_SERVERS"][i].setdefault("CERTIFICATE", {})
+                configuration["REMOTE_PROXY_SERVERS"][i]["CERTIFICATE"].setdefault("AUTHORITY", {})
+                configuration["REMOTE_PROXY_SERVERS"][i]["CERTIFICATE"]["AUTHORITY"].setdefault("FILE", "")
+                configuration["REMOTE_PROXY_SERVERS"][i]["CERTIFICATE"].setdefault("ADDRESS", "")
+                configuration["REMOTE_PROXY_SERVERS"][i].setdefault("ACCOUNT", {})
+                configuration["REMOTE_PROXY_SERVERS"][i]["ACCOUNT"].setdefault("NAME", "")
+                configuration["REMOTE_PROXY_SERVERS"][i]["ACCOUNT"].setdefault("PASSWORD", "")
+            i = i + 1
+
+def create_server(configuration):
+    set_default_configuration(configuration, ["PROXY_SERVERS", "LOCAL_PROXY_SERVER", "REMOTE_PROXY_SERVERS"])
+    
+    output_protocol_connection_manager = OutputProtocolConnectionManager(configuration)
+    
+    if configuration["LOCAL_PROXY_SERVER"]["TYPE"] == "HTTPS":
+        return create_https_server(configuration, output_protocol_connection_manager)
+    else:
+        if configuration["LOCAL_PROXY_SERVER"]["TYPE"] == "SOCKS4":
+            return create_socks4_server(configuration, output_protocol_connection_manager)
+        else:
+            if configuration["LOCAL_PROXY_SERVER"]["TYPE"] == "SOCKS5":
+                return create_socks5_server(configuration, output_protocol_connection_manager)
+            else:
+                return None
 
 class OutputProtocol(asyncio.Protocol):
     def __init__(self):
@@ -105,11 +137,76 @@ class OutputProtocolFactory(object):
         output_protocol.input_protocol.output_protocol = output_protocol
         return output_protocol
 
+class OutputProtocolConnection(object):
+    def __init__(self, configuration):
+        twunnel3.logger.log(3, "trace: OutputProtocolConnection.__init__")
+        
+        self.configuration = configuration
+    
+    def connect(self, remote_address, remote_port, input_protocol):
+        twunnel3.logger.log(3, "trace: OutputProtocolConnection.connect")
+        
+        output_protocol_factory = OutputProtocolFactory(input_protocol)
+        
+        tunnel = twunnel3.proxy_server.create_tunnel(self.configuration)
+        asyncio.async(tunnel.create_connection(output_protocol_factory, address=remote_address, port=remote_port))
+
+class OutputProtocolConnectionManager(object):
+    def __init__(self, configuration):
+        twunnel3.logger.log(3, "trace: OutputProtocolConnectionManager.__init__")
+        
+        self.configuration = configuration
+        self.i = -1
+        
+        self.output_protocol_connections = []
+        
+        if len(self.configuration["REMOTE_PROXY_SERVERS"]) == 0:
+            configuration = {}
+            configuration["PROXY_SERVERS"] = self.configuration["PROXY_SERVERS"]
+            configuration["LOCAL_PROXY_SERVER"] = self.configuration["LOCAL_PROXY_SERVER"]
+            
+            output_protocol_connection = OutputProtocolConnection(configuration)
+            self.output_protocol_connections.append(output_protocol_connection)
+        else:
+            i = 0
+            while i < len(self.configuration["REMOTE_PROXY_SERVERS"]):
+                configuration = {}
+                configuration["PROXY_SERVERS"] = self.configuration["PROXY_SERVERS"]
+                configuration["LOCAL_PROXY_SERVER"] = self.configuration["LOCAL_PROXY_SERVER"]
+                configuration["REMOTE_PROXY_SERVER"] = self.configuration["REMOTE_PROXY_SERVERS"][i]
+                
+                output_protocol_connection_class = self.get_output_protocol_connection_class(configuration["REMOTE_PROXY_SERVER"]["TYPE"])
+                
+                if output_protocol_connection_class is not None:
+                    output_protocol_connection = output_protocol_connection_class(configuration)
+                    self.output_protocol_connections.append(output_protocol_connection)
+                
+                i = i + 1
+    
+    def connect(self, remote_address, remote_port, input_protocol):
+        twunnel3.logger.log(3, "trace: OutputProtocolConnectionManager.connect")
+        
+        self.i = self.i + 1
+        if self.i >= len(self.output_protocol_connections):
+            self.i = 0
+        
+        output_protocol_connection = self.output_protocol_connections[self.i]
+        output_protocol_connection.connect(remote_address, remote_port, input_protocol)
+    
+    def get_output_protocol_connection_class(self, type):
+        twunnel3.logger.log(3, "trace: OutputProtocolConnectionManager.get_output_protocol_connection_class")
+        
+        if type == "SSL":
+            return SSLOutputProtocolConnection
+        else:
+            return None
+
 class HTTPSInputProtocol(asyncio.Protocol):
     def __init__(self):
         twunnel3.logger.log(3, "trace: HTTPSInputProtocol.__init__")
         
         self.configuration = None
+        self.output_protocol_connection_manager = None
         self.output_protocol = None
         self.remote_address = ""
         self.remote_port = 0
@@ -204,10 +301,7 @@ class HTTPSInputProtocol(asyncio.Protocol):
             twunnel3.logger.log(2, "remote_address: " + self.remote_address)
             twunnel3.logger.log(2, "remote_port: " + str(self.remote_port))
             
-            output_protocol_factory = OutputProtocolFactory(self)
-            
-            tunnel = twunnel3.proxy_server.create_tunnel(self.configuration)
-            asyncio.async(tunnel.create_connection(output_protocol_factory, self.remote_address, self.remote_port))
+            self.output_protocol_connection_manager.connect(self.remote_address, self.remote_port, self)
             
             return True
         else:
@@ -288,23 +382,30 @@ class HTTPSInputProtocol(asyncio.Protocol):
 class HTTPSInputProtocolFactory(object):
     protocol = HTTPSInputProtocol
     
-    def __init__(self, configuration):
+    def __init__(self, configuration, output_protocol_connection_manager):
         twunnel3.logger.log(3, "trace: HTTPSInputProtocolFactory.__init__")
         
         self.configuration = configuration
+        self.output_protocol_connection_manager = output_protocol_connection_manager
     
     def __call__(self):
         twunnel3.logger.log(3, "trace: HTTPSInputProtocolFactory.__call__")
         
         input_protocol = HTTPSInputProtocol()
         input_protocol.configuration = self.configuration
+        input_protocol.output_protocol_connection_manager = self.output_protocol_connection_manager
         return input_protocol
+
+def create_https_server(configuration, output_protocol_connection_manager):
+    input_protocol_factory = HTTPSInputProtocolFactory(configuration, output_protocol_connection_manager)
+    return asyncio.get_event_loop().create_server(input_protocol_factory, host=configuration["LOCAL_PROXY_SERVER"]["ADDRESS"], port=configuration["LOCAL_PROXY_SERVER"]["PORT"])
 
 class SOCKS4InputProtocol(asyncio.Protocol):
     def __init__(self):
         twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.__init__")
         
         self.configuration = None
+        self.output_protocol_connection_manager = None
         self.output_protocol = None
         self.remote_address = ""
         self.remote_port = 0
@@ -384,10 +485,7 @@ class SOCKS4InputProtocol(asyncio.Protocol):
         twunnel3.logger.log(2, "remote_port: " + str(self.remote_port))
         
         if method == 0x01:
-            output_protocol_factory = OutputProtocolFactory(self)
-            
-            tunnel = twunnel3.proxy_server.create_tunnel(self.configuration)
-            asyncio.async(tunnel.create_connection(output_protocol_factory, self.remote_address, self.remote_port))
+            self.output_protocol_connection_manager.connect(self.remote_address, self.remote_port, self)
             
             return True
         else:
@@ -462,23 +560,30 @@ class SOCKS4InputProtocol(asyncio.Protocol):
             self.transport.resume_reading()
 
 class SOCKS4InputProtocolFactory(object):
-    def __init__(self, configuration):
+    def __init__(self, configuration, output_protocol_connection_manager):
         twunnel3.logger.log(3, "trace: SOCKS4InputProtocolFactory.__init__")
         
         self.configuration = configuration
+        self.output_protocol_connection_manager = output_protocol_connection_manager
     
     def __call__(self):
         twunnel3.logger.log(3, "trace: SOCKS4InputProtocolFactory.__call__")
         
         input_protocol = SOCKS4InputProtocol()
         input_protocol.configuration = self.configuration
+        input_protocol.output_protocol_connection_manager = self.output_protocol_connection_manager
         return input_protocol
+
+def create_socks4_server(configuration, output_protocol_connection_manager):
+    input_protocol_factory = SOCKS4InputProtocolFactory(configuration, output_protocol_connection_manager)
+    return asyncio.get_event_loop().create_server(input_protocol_factory, host=configuration["LOCAL_PROXY_SERVER"]["ADDRESS"], port=configuration["LOCAL_PROXY_SERVER"]["PORT"])
 
 class SOCKS5InputProtocol(asyncio.Protocol):
     def __init__(self):
         twunnel3.logger.log(3, "trace: SOCKS5InputProtocol.__init__")
         
         self.configuration = None
+        self.output_protocol_connection_manager = None
         self.output_protocol = None
         self.remote_address = ""
         self.remote_port = 0
@@ -706,10 +811,7 @@ class SOCKS5InputProtocol(asyncio.Protocol):
         twunnel3.logger.log(2, "remote_port: " + str(self.remote_port))
         
         if method == 0x01:
-            output_protocol_factory = OutputProtocolFactory(self)
-            
-            tunnel = twunnel3.proxy_server.create_tunnel(self.configuration)
-            asyncio.async(tunnel.create_connection(output_protocol_factory, self.remote_address, self.remote_port))
+            self.output_protocol_connection_manager.connect(self.remote_address, self.remote_port, self)
             
             return True
         else:
@@ -784,33 +886,59 @@ class SOCKS5InputProtocol(asyncio.Protocol):
             self.transport.resume_reading()
 
 class SOCKS5InputProtocolFactory(object):
-    def __init__(self, configuration):
+    def __init__(self, configuration, output_protocol_connection_manager):
         twunnel3.logger.log(3, "trace: SOCKS5InputProtocolFactory.__init__")
         
         self.configuration = configuration
+        self.output_protocol_connection_manager = output_protocol_connection_manager
     
     def __call__(self):
-        twunnel3.logger.log(3, "trace: SOCKS5InputProtocolFactory.buildProtocol")
+        twunnel3.logger.log(3, "trace: SOCKS5InputProtocolFactory.__call__")
         
         input_protocol = SOCKS5InputProtocol()
         input_protocol.configuration = self.configuration
+        input_protocol.output_protocol_connection_manager = self.output_protocol_connection_manager
         return input_protocol
 
-def get_input_protocol_factory_class(type):
-    if type == "HTTPS":
-        return HTTPSInputProtocolFactory
-    else:
-        if type == "SOCKS4":
-            return SOCKS4InputProtocolFactory
-        else:
-            if type == "SOCKS5":
-                return SOCKS5InputProtocolFactory
-            else:
-                return None
-
-def create_server(configuration):
-    set_default_configuration(configuration, ["PROXY_SERVERS", "LOCAL_PROXY_SERVER"])
-    
-    input_protocol_factory_class = get_input_protocol_factory_class(configuration["LOCAL_PROXY_SERVER"]["TYPE"])
-    input_protocol_factory = input_protocol_factory_class(configuration)
+def create_socks5_server(configuration, output_protocol_connection_manager):
+    input_protocol_factory = SOCKS5InputProtocolFactory(configuration, output_protocol_connection_manager)
     return asyncio.get_event_loop().create_server(input_protocol_factory, host=configuration["LOCAL_PROXY_SERVER"]["ADDRESS"], port=configuration["LOCAL_PROXY_SERVER"]["PORT"])
+
+# SSL
+
+class SSLOutputProtocolConnection(object):
+    def __init__(self, configuration):
+        twunnel3.logger.log(3, "trace: SSLOutputProtocolConnection.__init__")
+        
+        self.configuration = configuration
+    
+    def connect(self, remote_address, remote_port, input_protocol):
+        twunnel3.logger.log(3, "trace: SSLOutputProtocolConnection.connect")
+        
+        configuration = {}
+        configuration["PROXY_SERVER"] = {}
+        configuration["PROXY_SERVER"]["TYPE"] = "SOCKS5"
+        configuration["PROXY_SERVER"]["ADDRESS"] = self.configuration["REMOTE_PROXY_SERVER"]["ADDRESS"]
+        configuration["PROXY_SERVER"]["PORT"] = self.configuration["REMOTE_PROXY_SERVER"]["PORT"]
+        configuration["PROXY_SERVER"]["ACCOUNT"] = {}
+        configuration["PROXY_SERVER"]["ACCOUNT"]["NAME"] = self.configuration["REMOTE_PROXY_SERVER"]["ACCOUNT"]["NAME"]
+        configuration["PROXY_SERVER"]["ACCOUNT"]["PASSWORD"] = self.configuration["REMOTE_PROXY_SERVER"]["ACCOUNT"]["PASSWORD"]
+        
+        output_protocol_factory = OutputProtocolFactory(input_protocol)
+        
+        tunnel_output_protocol_factory = twunnel3.proxy_server.SOCKS5TunnelOutputProtocolFactory(configuration, remote_address, remote_port)
+        tunnel_protocol_factory = twunnel3.proxy_server.TunnelProtocolFactory(tunnel_output_protocol_factory, output_protocol_factory, None, None)
+        
+        ssl = _ssl.SSLContext(_ssl.PROTOCOL_SSLv23)
+        ssl.options |= _ssl.OP_NO_SSLv2
+        ssl.set_default_verify_paths()
+        ssl.verify_mode = _ssl.CERT_REQUIRED
+        if self.configuration["REMOTE_PROXY_SERVER"]["CERTIFICATE"]["AUTHORITY"]["FILE"] != "":
+            ssl.load_verify_locations(cafile=self.configuration["REMOTE_PROXY_SERVER"]["CERTIFICATE"]["AUTHORITY"]["FILE"])
+        
+        ssl_address = self.configuration["REMOTE_PROXY_SERVER"]["ADDRESS"]
+        if self.configuration["REMOTE_PROXY_SERVER"]["CERTIFICATE"]["ADDRESS"] != "":
+            ssl_address = self.configuration["REMOTE_PROXY_SERVER"]["CERTIFICATE"]["ADDRESS"]
+        
+        tunnel = twunnel3.proxy_server.create_tunnel(self.configuration)
+        asyncio.async(tunnel.create_connection(tunnel_protocol_factory, address=self.configuration["REMOTE_PROXY_SERVER"]["ADDRESS"], port=self.configuration["REMOTE_PROXY_SERVER"]["PORT"], ssl=ssl, ssl_address=ssl_address))

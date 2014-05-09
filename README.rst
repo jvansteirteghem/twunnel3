@@ -6,6 +6,7 @@ A HTTPS/SOCKS4/SOCKS5 tunnel for AsyncIO.
 Supports:
 
 - TCP
+- TCP over SSL
 
 Examples
 --------
@@ -17,6 +18,7 @@ Examples
   - Example 3: A SOCKS4 TCP tunnel.
   - Example 4: A SOCKS5 TCP tunnel.
   - Example 5: A HTTPS TCP, SOCKS4 TCP, SOCKS5 TCP tunnel.
+  - Example 6: A SOCKS5 TCP over SSL tunnel.
 
 License
 -------
