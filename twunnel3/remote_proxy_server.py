@@ -40,7 +40,21 @@ class SSLInputProtocolFactory(twunnel3.local_proxy_server.SOCKS5InputProtocolFac
     def __init__(self, configuration):
         twunnel3.logger.log(3, "trace: SSLInputProtocolFactory.__init__")
         
-        configuration["LOCAL_PROXY_SERVER"] = configuration["REMOTE_PROXY_SERVER"]
+        self.configuration = configuration
+        
+        configuration = {}
+        configuration["PROXY_SERVERS"] = self.configuration["PROXY_SERVERS"]
+        configuration["LOCAL_PROXY_SERVER"] = {}
+        configuration["LOCAL_PROXY_SERVER"]["TYPE"] = "SOCKS5"
+        configuration["LOCAL_PROXY_SERVER"]["ADDRESS"] = self.configuration["REMOTE_PROXY_SERVER"]["ADDRESS"]
+        configuration["LOCAL_PROXY_SERVER"]["PORT"] = self.configuration["REMOTE_PROXY_SERVER"]["PORT"]
+        configuration["LOCAL_PROXY_SERVER"]["ACCOUNTS"] = []
+        i = 0
+        while i < len(self.configuration["REMOTE_PROXY_SERVER"]["ACCOUNTS"]):
+            configuration["LOCAL_PROXY_SERVER"]["ACCOUNTS"].append({})
+            configuration["LOCAL_PROXY_SERVER"]["ACCOUNTS"][i]["NAME"] = self.configuration["REMOTE_PROXY_SERVER"]["ACCOUNTS"][i]["NAME"]
+            configuration["LOCAL_PROXY_SERVER"]["ACCOUNTS"][i]["PASSWORD"] = self.configuration["REMOTE_PROXY_SERVER"]["ACCOUNTS"][i]["PASSWORD"]
+            i = i + 1
         configuration["REMOTE_PROXY_SERVERS"] = []
         
         output_protocol_connection_manager = twunnel3.local_proxy_server.OutputProtocolConnectionManager(configuration)
