@@ -6,7 +6,7 @@ import twunnel3.logger
 
 class HTTPSInputProtocol(asyncio.Protocol):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.__init__")
+        twunnel3.logger.trace("HTTPSInputProtocol.__init__")
         
         self.configuration = None
         self.output_protocol_connection_manager = None
@@ -19,14 +19,14 @@ class HTTPSInputProtocol(asyncio.Protocol):
         self.transport = None
     
     def connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.connection_made")
+        twunnel3.logger.trace("HTTPSInputProtocol.connection_made")
         
         self.transport = transport
         
         self.connection_state = 1
     
     def connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.connection_lost")
+        twunnel3.logger.trace("HTTPSInputProtocol.connection_lost")
         
         self.connection_state = 2
         
@@ -36,7 +36,7 @@ class HTTPSInputProtocol(asyncio.Protocol):
         self.transport = None
     
     def data_received(self, data):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.data_received")
+        twunnel3.logger.trace("HTTPSInputProtocol.data_received")
         
         self.data = self.data + data
         if self.data_state == 0:
@@ -47,7 +47,7 @@ class HTTPSInputProtocol(asyncio.Protocol):
                 return
     
     def process_data_state0(self):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.process_data_state0")
+        twunnel3.logger.trace("HTTPSInputProtocol.process_data_state0")
         
         data = self.data
         
@@ -101,8 +101,8 @@ class HTTPSInputProtocol(asyncio.Protocol):
             self.remote_address = address.decode()
             self.remote_port = port
             
-            twunnel3.logger.log(2, "remote_address: " + self.remote_address)
-            twunnel3.logger.log(2, "remote_port: " + str(self.remote_port))
+            twunnel3.logger.debug("remote_address: " + self.remote_address)
+            twunnel3.logger.debug("remote_port: " + str(self.remote_port))
             
             self.output_protocol_connection_manager.connect(self.remote_address, self.remote_port, self)
             
@@ -118,7 +118,7 @@ class HTTPSInputProtocol(asyncio.Protocol):
             return True
         
     def process_data_state1(self):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.process_data_state1")
+        twunnel3.logger.trace("HTTPSInputProtocol.process_data_state1")
         
         self.output_protocol.input_protocol__data_received(self.data)
         
@@ -127,7 +127,7 @@ class HTTPSInputProtocol(asyncio.Protocol):
         return True
         
     def output_protocol__connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.output_protocol__connection_made")
+        twunnel3.logger.trace("HTTPSInputProtocol.output_protocol__connection_made")
         
         if self.connection_state == 1:
             response = b"HTTP/1.1 200 OK\r\n"
@@ -146,7 +146,7 @@ class HTTPSInputProtocol(asyncio.Protocol):
                 self.output_protocol.input_protocol__connection_lost(None)
         
     def output_protocol__connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.output_protocol__connection_lost")
+        twunnel3.logger.trace("HTTPSInputProtocol.output_protocol__connection_lost")
         
         if self.connection_state == 1:
             if self.data_state == 1:
@@ -162,7 +162,7 @@ class HTTPSInputProtocol(asyncio.Protocol):
                 self.output_protocol.input_protocol__connection_lost(None)
         
     def output_protocol__data_received(self, data):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.output_protocol__data_received")
+        twunnel3.logger.trace("HTTPSInputProtocol.output_protocol__data_received")
         
         if self.connection_state == 1:
             self.transport.write(data)
@@ -171,13 +171,13 @@ class HTTPSInputProtocol(asyncio.Protocol):
                 self.output_protocol.input_protocol__connection_lost(None)
     
     def pause_writing(self):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.pause_reading")
+        twunnel3.logger.trace("HTTPSInputProtocol.pause_reading")
         
         if self.connection_state == 1:
             self.transport.pause_reading()
     
     def resume_writing(self):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocol.resume_writing")
+        twunnel3.logger.trace("HTTPSInputProtocol.resume_writing")
         
         if self.connection_state == 1:
             self.transport.resume_reading()
@@ -186,13 +186,13 @@ class HTTPSInputProtocolFactory(object):
     protocol = HTTPSInputProtocol
     
     def __init__(self, configuration, output_protocol_connection_manager):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocolFactory.__init__")
+        twunnel3.logger.trace("HTTPSInputProtocolFactory.__init__")
         
         self.configuration = configuration
         self.output_protocol_connection_manager = output_protocol_connection_manager
     
     def __call__(self):
-        twunnel3.logger.log(3, "trace: HTTPSInputProtocolFactory.__call__")
+        twunnel3.logger.trace("HTTPSInputProtocolFactory.__call__")
         
         input_protocol = HTTPSInputProtocol()
         input_protocol.configuration = self.configuration

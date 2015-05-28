@@ -4,13 +4,13 @@ import twunnel3.proxy_server
 
 class Protocol(asyncio.Protocol):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: Protocol.__init__")
+        twunnel3.logger.trace("trace: Protocol.__init__")
         
         self.request = b""
         self.response = b""
         
     def connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: Protocol.connection_made")
+        twunnel3.logger.trace("trace: Protocol.connection_made")
         
         self.transport = transport
         
@@ -23,17 +23,17 @@ class Protocol(asyncio.Protocol):
         
         self.request = self.request + b"\r\n"
         
-        twunnel3.logger.log(2, "request: " + self.request.decode())
+        twunnel3.logger.info("request: " + self.request.decode())
         
         self.transport.write(self.request)
     
     def connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: Protocol.connection_lost")
+        twunnel3.logger.trace("trace: Protocol.connection_lost")
         
         self.transport = None
         
     def data_received(self, data):
-        twunnel3.logger.log(3, "trace: Protocol.data_received")
+        twunnel3.logger.trace("trace: Protocol.data_received")
         
         self.response = self.response + data
         
@@ -42,19 +42,19 @@ class Protocol(asyncio.Protocol):
         if i == -1:
             return
         
-        twunnel3.logger.log(2, "response: " + self.response.decode())
+        twunnel3.logger.info("response: " + self.response.decode())
         
         self.transport.close()
         
 class ProtocolFactory(object):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: ProtocolFactory.__init__")
+        twunnel3.logger.trace("trace: ProtocolFactory.__init__")
         
         self.address = ""
         self.port = 0
     
     def __call__(self):
-        twunnel3.logger.log(3, "trace: ProtocolFactory.__call__")
+        twunnel3.logger.trace("trace: ProtocolFactory.__call__")
         
         protocol = Protocol()
         protocol.factory = self

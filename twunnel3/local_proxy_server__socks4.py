@@ -8,7 +8,7 @@ import twunnel3.logger
 
 class SOCKS4InputProtocol(asyncio.Protocol):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.__init__")
+        twunnel3.logger.trace("SOCKS4InputProtocol.__init__")
         
         self.configuration = None
         self.output_protocol_connection_manager = None
@@ -21,14 +21,14 @@ class SOCKS4InputProtocol(asyncio.Protocol):
         self.transport = None
     
     def connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.connection_made")
+        twunnel3.logger.trace("SOCKS4InputProtocol.connection_made")
         
         self.transport = transport
         
         self.connection_state = 1
     
     def connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.connection_lost")
+        twunnel3.logger.trace("SOCKS4InputProtocol.connection_lost")
         
         self.connection_state = 2
         
@@ -38,7 +38,7 @@ class SOCKS4InputProtocol(asyncio.Protocol):
         self.transport = None
     
     def data_received(self, data):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.data_received")
+        twunnel3.logger.trace("SOCKS4InputProtocol.data_received")
         
         self.data = self.data + data
         if self.data_state == 0:
@@ -49,7 +49,7 @@ class SOCKS4InputProtocol(asyncio.Protocol):
                 return
         
     def process_data_state0(self):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.process_data_state0")
+        twunnel3.logger.trace("SOCKS4InputProtocol.process_data_state0")
         
         data = self.data
         
@@ -87,8 +87,8 @@ class SOCKS4InputProtocol(asyncio.Protocol):
         
         self.data = data
         
-        twunnel3.logger.log(2, "remote_address: " + self.remote_address)
-        twunnel3.logger.log(2, "remote_port: " + str(self.remote_port))
+        twunnel3.logger.debug("remote_address: " + self.remote_address)
+        twunnel3.logger.debug("remote_port: " + str(self.remote_port))
         
         if method == 0x01:
             self.output_protocol_connection_manager.connect(self.remote_address, self.remote_port, self)
@@ -103,7 +103,7 @@ class SOCKS4InputProtocol(asyncio.Protocol):
             return True
         
     def process_data_state1(self):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.process_data_state1")
+        twunnel3.logger.trace("SOCKS4InputProtocol.process_data_state1")
         
         self.output_protocol.input_protocol__data_received(self.data)
         
@@ -112,7 +112,7 @@ class SOCKS4InputProtocol(asyncio.Protocol):
         return True
         
     def output_protocol__connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.output_protocol__connection_made")
+        twunnel3.logger.trace("SOCKS4InputProtocol.output_protocol__connection_made")
         
         if self.connection_state == 1:
             response = struct.pack("!BBHI", 0x00, 0x5a, 0, 0)
@@ -130,7 +130,7 @@ class SOCKS4InputProtocol(asyncio.Protocol):
                 self.output_protocol.input_protocol__connection_lost(None)
     
     def output_protocol__connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.output_protocol__connection_lost")
+        twunnel3.logger.trace("SOCKS4InputProtocol.output_protocol__connection_lost")
         
         if self.connection_state == 1:
             if self.data_state != 1:
@@ -145,7 +145,7 @@ class SOCKS4InputProtocol(asyncio.Protocol):
                 self.output_protocol.input_protocol__connection_lost(None)
         
     def output_protocol__data_received(self, data):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.output_protocol__data_received")
+        twunnel3.logger.trace("SOCKS4InputProtocol.output_protocol__data_received")
         
         if self.connection_state == 1:
             self.transport.write(data)
@@ -154,26 +154,26 @@ class SOCKS4InputProtocol(asyncio.Protocol):
                 self.output_protocol.input_protocol__connection_lost(None)
     
     def pause_writing(self):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.pause_reading")
+        twunnel3.logger.trace("SOCKS4InputProtocol.pause_reading")
         
         if self.connection_state == 1:
             self.transport.pause_reading()
     
     def resume_writing(self):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocol.resume_writing")
+        twunnel3.logger.trace("SOCKS4InputProtocol.resume_writing")
         
         if self.connection_state == 1:
             self.transport.resume_reading()
 
 class SOCKS4InputProtocolFactory(object):
     def __init__(self, configuration, output_protocol_connection_manager):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocolFactory.__init__")
+        twunnel3.logger.trace("SOCKS4InputProtocolFactory.__init__")
         
         self.configuration = configuration
         self.output_protocol_connection_manager = output_protocol_connection_manager
     
     def __call__(self):
-        twunnel3.logger.log(3, "trace: SOCKS4InputProtocolFactory.__call__")
+        twunnel3.logger.trace("SOCKS4InputProtocolFactory.__call__")
         
         input_protocol = SOCKS4InputProtocol()
         input_protocol.configuration = self.configuration

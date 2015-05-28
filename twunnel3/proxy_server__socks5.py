@@ -10,7 +10,7 @@ from twunnel3.proxy_server import is_ipv4_address, is_ipv6_address
 
 class SOCKS5TunnelOutputProtocol(asyncio.Protocol):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocol.__init__")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocol.__init__")
         
         self.data = b""
         self.data_state = 0
@@ -18,7 +18,7 @@ class SOCKS5TunnelOutputProtocol(asyncio.Protocol):
         self.transport = None
     
     def connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocol.connection_made")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocol.connection_made")
         
         self.transport = transport
         
@@ -29,12 +29,12 @@ class SOCKS5TunnelOutputProtocol(asyncio.Protocol):
         self.data_state = 0
         
     def connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocol.connection_lost")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocol.connection_lost")
         
         self.transport = None
     
     def data_received(self, data):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocol.data_received")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocol.data_received")
         
         self.data = self.data + data
         if self.data_state == 0:
@@ -51,7 +51,7 @@ class SOCKS5TunnelOutputProtocol(asyncio.Protocol):
                 return
         
     def process_data_state0(self):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocol.process_data_state0")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocol.process_data_state0")
         
         data = self.data
         
@@ -91,7 +91,7 @@ class SOCKS5TunnelOutputProtocol(asyncio.Protocol):
                 return True
         
     def process_data_state1(self):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocol.process_data_state1")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocol.process_data_state1")
         
         data = self.data
         
@@ -114,7 +114,7 @@ class SOCKS5TunnelOutputProtocol(asyncio.Protocol):
         return False
         
     def process_data_state2(self):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocol.process_data_state2")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocol.process_data_state2")
         
         address_type = 0x03
         if is_ipv4_address(self.factory.address) == True:
@@ -156,7 +156,7 @@ class SOCKS5TunnelOutputProtocol(asyncio.Protocol):
         return True
     
     def process_data_state3(self):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocol.process_data_state3")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocol.process_data_state3")
         
         data = self.data
         
@@ -222,7 +222,7 @@ class SOCKS5TunnelOutputProtocol(asyncio.Protocol):
 
 class SOCKS5TunnelOutputProtocolFactory(object):
     def __init__(self, configuration, address, port):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocolFactory.__init__")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocolFactory.__init__")
         
         self.configuration = configuration
         self.address = address
@@ -230,7 +230,7 @@ class SOCKS5TunnelOutputProtocolFactory(object):
         self.tunnel_protocol = None
     
     def __call__(self):
-        twunnel3.logger.log(3, "trace: SOCKS5TunnelOutputProtocolFactory.__call__")
+        twunnel3.logger.trace("SOCKS5TunnelOutputProtocolFactory.__call__")
         
         protocol = SOCKS5TunnelOutputProtocol()
         protocol.factory = self

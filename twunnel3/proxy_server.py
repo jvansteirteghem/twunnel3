@@ -48,14 +48,14 @@ def set_default_configuration(configuration, keys):
 
 class TunnelProtocol(asyncio.Protocol):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: TunnelProtocol.__init__")
+        twunnel3.logger.trace("TunnelProtocol.__init__")
         
         self.data = b""
         self.factory = None
         self.transport = None
     
     def connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: TunnelProtocol.connection_made")
+        twunnel3.logger.trace("TunnelProtocol.connection_made")
         
         self.transport = transport
         
@@ -76,7 +76,7 @@ class TunnelProtocol(asyncio.Protocol):
                     self.data = b""
     
     def connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: TunnelProtocol.connection_lost")
+        twunnel3.logger.trace("TunnelProtocol.connection_lost")
         
         if self.factory.tunnel_output_protocol is not None:
             self.factory.tunnel_output_protocol.connection_lost(exception)
@@ -87,7 +87,7 @@ class TunnelProtocol(asyncio.Protocol):
         self.transport = None
     
     def data_received(self, data):
-        twunnel3.logger.log(3, "trace: TunnelProtocol.data_received")
+        twunnel3.logger.trace("TunnelProtocol.data_received")
         
         if self.factory.tunnel_output_protocol is not None:
             self.factory.tunnel_output_protocol.data_received(data)
@@ -96,7 +96,7 @@ class TunnelProtocol(asyncio.Protocol):
                 self.factory.output_protocol.data_received(data)
     
     def tunnel_output_protocol__connection_made(self, transport, data):
-        twunnel3.logger.log(3, "trace: TunnelProtocol.tunnel_output_protocol__connection_made")
+        twunnel3.logger.trace("TunnelProtocol.tunnel_output_protocol__connection_made")
         
         self.data = data
         
@@ -104,7 +104,7 @@ class TunnelProtocol(asyncio.Protocol):
 
 class TunnelProtocolFactory(object):
     def __init__(self, tunnel_output_protocol_factory, output_protocol_factory, ssl, ssl_address):
-        twunnel3.logger.log(3, "trace: TunnelProtocolFactory.__init__")
+        twunnel3.logger.trace("TunnelProtocolFactory.__init__")
         
         self.tunnel_output_protocol = None
         self.tunnel_output_protocol_factory = tunnel_output_protocol_factory
@@ -114,7 +114,7 @@ class TunnelProtocolFactory(object):
         self.ssl_address = ssl_address
     
     def __call__(self):
-        twunnel3.logger.log(3, "trace: TunnelProtocolFactory.__call__")
+        twunnel3.logger.trace("TunnelProtocolFactory.__call__")
         
         protocol = TunnelProtocol()
         protocol.factory = self
@@ -122,12 +122,12 @@ class TunnelProtocolFactory(object):
 
 class Tunnel(object):
     def __init__(self, configuration):
-        twunnel3.logger.log(3, "trace: Tunnel.__init__")
+        twunnel3.logger.trace("Tunnel.__init__")
         
         self.configuration = configuration
     
     def create_connection(self, output_protocol_factory, address=None, port=None, *, local_address=None, local_port=None, address_family=0, address_protocol=0, address_flags=0, ssl=None, ssl_address=None):
-        twunnel3.logger.log(3, "trace: Tunnel.create_connection")
+        twunnel3.logger.trace("Tunnel.create_connection")
         
         local_address_port = None
         if local_address is not None or local_port is not None:
@@ -165,7 +165,7 @@ class Tunnel(object):
             return asyncio.get_event_loop().create_connection(tunnel_protocol_factory, host=self.configuration["PROXY_SERVERS"][i]["ADDRESS"], port=self.configuration["PROXY_SERVERS"][i]["PORT"], local_addr=local_address_port, family=address_family, proto=address_protocol, flags=address_flags)
     
     def get_tunnel_output_protocol_factory_class(self, type):
-        twunnel3.logger.log(3, "trace: Tunnel.get_tunnel_output_protocol_factory_class")
+        twunnel3.logger.trace("Tunnel.get_tunnel_output_protocol_factory_class")
         
         if type == "HTTPS":
             from twunnel3.proxy_server__https import HTTPSTunnelOutputProtocolFactory

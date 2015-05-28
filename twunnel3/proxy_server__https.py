@@ -9,7 +9,7 @@ from twunnel3.proxy_server import is_ipv4_address, is_ipv6_address
 
 class HTTPSTunnelOutputProtocol(asyncio.Protocol):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: HTTPSTunnelOutputProtocol.__init__")
+        twunnel3.logger.trace("HTTPSTunnelOutputProtocol.__init__")
         
         self.data = b""
         self.data_state = 0
@@ -17,7 +17,7 @@ class HTTPSTunnelOutputProtocol(asyncio.Protocol):
         self.transport = None
         
     def connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: HTTPSTunnelOutputProtocol.connection_made")
+        twunnel3.logger.trace("HTTPSTunnelOutputProtocol.connection_made")
         
         self.transport = transport
         
@@ -38,12 +38,12 @@ class HTTPSTunnelOutputProtocol(asyncio.Protocol):
         self.transport.write(request)
         
     def connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: HTTPSTunnelOutputProtocol.connection_lost")
+        twunnel3.logger.trace("HTTPSTunnelOutputProtocol.connection_lost")
         
         self.transport = None
     
     def data_received(self, data):
-        twunnel3.logger.log(3, "trace: HTTPSTunnelOutputProtocol.data_received")
+        twunnel3.logger.trace("HTTPSTunnelOutputProtocol.data_received")
         
         self.data = self.data + data
         if self.data_state == 0:
@@ -51,7 +51,7 @@ class HTTPSTunnelOutputProtocol(asyncio.Protocol):
                 return
     
     def process_data_state0(self):
-        twunnel3.logger.log(3, "trace: HTTPSTunnelOutputProtocol.process_data_state0")
+        twunnel3.logger.trace("HTTPSTunnelOutputProtocol.process_data_state0")
         
         data = self.data
         
@@ -91,7 +91,7 @@ class HTTPSTunnelOutputProtocol(asyncio.Protocol):
 
 class HTTPSTunnelOutputProtocolFactory(object):
     def __init__(self, configuration, address, port):
-        twunnel3.logger.log(3, "trace: HTTPSTunnelOutputProtocolFactory.__init__")
+        twunnel3.logger.trace("HTTPSTunnelOutputProtocolFactory.__init__")
         
         self.configuration = configuration
         self.address = address
@@ -99,7 +99,7 @@ class HTTPSTunnelOutputProtocolFactory(object):
         self.tunnel_protocol = None
     
     def __call__(self):
-        twunnel3.logger.log(3, "trace: HTTPSTunnelOutputProtocolFactory.__call__")
+        twunnel3.logger.trace("HTTPSTunnelOutputProtocolFactory.__call__")
         
         protocol = HTTPSTunnelOutputProtocol()
         protocol.factory = self

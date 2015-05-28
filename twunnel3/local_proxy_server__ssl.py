@@ -10,12 +10,12 @@ import twunnel3.proxy_server__socks5
 
 class SSLOutputProtocolConnection(object):
     def __init__(self, configuration):
-        twunnel3.logger.log(3, "trace: SSLOutputProtocolConnection.__init__")
+        twunnel3.logger.trace("SSLOutputProtocolConnection.__init__")
         
         self.configuration = configuration
     
     def connect(self, remote_address, remote_port, input_protocol):
-        twunnel3.logger.log(3, "trace: SSLOutputProtocolConnection.connect")
+        twunnel3.logger.trace("SSLOutputProtocolConnection.connect")
         
         configuration = {}
         configuration["PROXY_SERVER"] = {}

@@ -10,7 +10,7 @@ import twunnel3.proxy_server
 
 class SSLInputProtocolFactory(twunnel3.local_proxy_server__socks5.SOCKS5InputProtocolFactory):
     def __init__(self, configuration):
-        twunnel3.logger.log(3, "trace: SSLInputProtocolFactory.__init__")
+        twunnel3.logger.trace("SSLInputProtocolFactory.__init__")
         
         self.configuration = configuration
         

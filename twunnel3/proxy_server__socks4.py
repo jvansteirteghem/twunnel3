@@ -10,7 +10,7 @@ from twunnel3.proxy_server import is_ipv4_address, is_ipv6_address
 
 class SOCKS4TunnelOutputProtocol(asyncio.Protocol):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: SOCKS4TunnelOutputProtocol.__init__")
+        twunnel3.logger.trace("SOCKS4TunnelOutputProtocol.__init__")
         
         self.data = b""
         self.data_state = 0
@@ -18,7 +18,7 @@ class SOCKS4TunnelOutputProtocol(asyncio.Protocol):
         self.transport = None
     
     def connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: SOCKS4TunnelOutputProtocol.connection_made")
+        twunnel3.logger.trace("SOCKS4TunnelOutputProtocol.connection_made")
         
         self.transport = transport
         
@@ -61,12 +61,12 @@ class SOCKS4TunnelOutputProtocol(asyncio.Protocol):
         self.data_state = 0
         
     def connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: SOCKS4TunnelOutputProtocol.connection_lost")
+        twunnel3.logger.trace("SOCKS4TunnelOutputProtocol.connection_lost")
         
         self.transport = None
     
     def data_received(self, data):
-        twunnel3.logger.log(3, "trace: SOCKS4TunnelOutputProtocol.data_received")
+        twunnel3.logger.trace("SOCKS4TunnelOutputProtocol.data_received")
         
         self.data = self.data + data
         if self.data_state == 0:
@@ -74,7 +74,7 @@ class SOCKS4TunnelOutputProtocol(asyncio.Protocol):
                 return
     
     def process_data_state0(self):
-        twunnel3.logger.log(3, "trace: SOCKS4TunnelOutputProtocol.process_data_state0")
+        twunnel3.logger.trace("SOCKS4TunnelOutputProtocol.process_data_state0")
         
         data = self.data
         
@@ -98,7 +98,7 @@ class SOCKS4TunnelOutputProtocol(asyncio.Protocol):
 
 class SOCKS4TunnelOutputProtocolFactory(object):
     def __init__(self, configuration, address, port):
-        twunnel3.logger.log(3, "trace: SOCKS4TunnelOutputProtocolFactory.__init__")
+        twunnel3.logger.trace("SOCKS4TunnelOutputProtocolFactory.__init__")
         
         self.configuration = configuration
         self.address = address
@@ -106,7 +106,7 @@ class SOCKS4TunnelOutputProtocolFactory(object):
         self.tunnel_protocol = None
     
     def __call__(self):
-        twunnel3.logger.log(3, "trace: SOCKS4TunnelOutputProtocolFactory.__call__")
+        twunnel3.logger.trace("SOCKS4TunnelOutputProtocolFactory.__call__")
         
         protocol = SOCKS4TunnelOutputProtocol()
         protocol.factory = self

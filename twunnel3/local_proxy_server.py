@@ -70,14 +70,14 @@ def create_server(configuration):
 
 class OutputProtocol(asyncio.Protocol):
     def __init__(self):
-        twunnel3.logger.log(3, "trace: OutputProtocol.__init__")
+        twunnel3.logger.trace("OutputProtocol.__init__")
         
         self.input_protocol = None
         self.connection_state = 0
         self.transport = None
         
     def connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: OutputProtocol.connection_made")
+        twunnel3.logger.trace("OutputProtocol.connection_made")
         
         self.transport = transport
         
@@ -86,7 +86,7 @@ class OutputProtocol(asyncio.Protocol):
         self.input_protocol.output_protocol__connection_made(self.transport)
         
     def connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: OutputProtocol.connection_lost")
+        twunnel3.logger.trace("OutputProtocol.connection_lost")
         
         self.connection_state = 2
         
@@ -95,45 +95,45 @@ class OutputProtocol(asyncio.Protocol):
         self.transport = None
         
     def data_received(self, data):
-        twunnel3.logger.log(3, "trace: OutputProtocol.data_received")
+        twunnel3.logger.trace("OutputProtocol.data_received")
         
         self.input_protocol.output_protocol__data_received(data)
         
     def input_protocol__connection_made(self, transport):
-        twunnel3.logger.log(3, "trace: OutputProtocol.input_protocol__connection_made")
+        twunnel3.logger.trace("OutputProtocol.input_protocol__connection_made")
         
     def input_protocol__connection_lost(self, exception):
-        twunnel3.logger.log(3, "trace: OutputProtocol.input_protocol__connection_lost")
+        twunnel3.logger.trace("OutputProtocol.input_protocol__connection_lost")
         
         if self.connection_state == 1:
             self.transport.close()
         
     def input_protocol__data_received(self, data):
-        twunnel3.logger.log(3, "trace: OutputProtocol.input_protocol__data_received")
+        twunnel3.logger.trace("OutputProtocol.input_protocol__data_received")
         
         if self.connection_state == 1:
             self.transport.write(data)
     
     def pause_writing(self):
-        twunnel3.logger.log(3, "trace: OutputProtocol.pause_reading")
+        twunnel3.logger.trace("OutputProtocol.pause_reading")
         
         if self.connection_state == 1:
             self.transport.pause_reading()
     
     def resume_writing(self):
-        twunnel3.logger.log(3, "trace: OutputProtocol.resume_writing")
+        twunnel3.logger.trace("OutputProtocol.resume_writing")
         
         if self.connection_state == 1:
             self.transport.resume_reading()
 
 class OutputProtocolFactory(object):
     def __init__(self, input_protocol):
-        twunnel3.logger.log(3, "trace: OutputProtocolFactory.__init__")
+        twunnel3.logger.trace("OutputProtocolFactory.__init__")
         
         self.input_protocol = input_protocol
         
     def __call__(self):
-        twunnel3.logger.log(3, "trace: OutputProtocolFactory.__call__")
+        twunnel3.logger.trace("OutputProtocolFactory.__call__")
         
         output_protocol = OutputProtocol()
         output_protocol.input_protocol = self.input_protocol
@@ -142,12 +142,12 @@ class OutputProtocolFactory(object):
 
 class OutputProtocolConnection(object):
     def __init__(self, configuration):
-        twunnel3.logger.log(3, "trace: OutputProtocolConnection.__init__")
+        twunnel3.logger.trace("OutputProtocolConnection.__init__")
         
         self.configuration = configuration
     
     def connect(self, remote_address, remote_port, input_protocol):
-        twunnel3.logger.log(3, "trace: OutputProtocolConnection.connect")
+        twunnel3.logger.trace("OutputProtocolConnection.connect")
         
         output_protocol_factory = OutputProtocolFactory(input_protocol)
         
@@ -156,7 +156,7 @@ class OutputProtocolConnection(object):
 
 class OutputProtocolConnectionManager(object):
     def __init__(self, configuration):
-        twunnel3.logger.log(3, "trace: OutputProtocolConnectionManager.__init__")
+        twunnel3.logger.trace("OutputProtocolConnectionManager.__init__")
         
         self.configuration = configuration
         self.i = -1
@@ -187,7 +187,7 @@ class OutputProtocolConnectionManager(object):
                 i = i + 1
     
     def connect(self, remote_address, remote_port, input_protocol):
-        twunnel3.logger.log(3, "trace: OutputProtocolConnectionManager.connect")
+        twunnel3.logger.trace("OutputProtocolConnectionManager.connect")
         
         self.i = self.i + 1
         if self.i >= len(self.output_protocol_connections):
@@ -197,7 +197,7 @@ class OutputProtocolConnectionManager(object):
         output_protocol_connection.connect(remote_address, remote_port, input_protocol)
     
     def get_output_protocol_connection_class(self, type):
-        twunnel3.logger.log(3, "trace: OutputProtocolConnectionManager.get_output_protocol_connection_class")
+        twunnel3.logger.trace("OutputProtocolConnectionManager.get_output_protocol_connection_class")
         
         if type == "SSL":
             from twunnel3.local_proxy_server__ssl import SSLOutputProtocolConnection

@@ -36,7 +36,7 @@ classifiers=[
 
 setup(
     name='twunnel3',
-    version='0.3.0',
+    version='0.4.0',
     description='A HTTPS/SOCKS4/SOCKS5 tunnel for AsyncIO.',
     long_description=readme,
     packages=packages,
